@@ -1,6 +1,6 @@
 class Task {
-  Task(this.title);
+  Task(this.content);
 
   bool completed = false;
-  String title;
+  String content;
 }
