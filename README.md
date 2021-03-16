@@ -4,7 +4,7 @@
 
 > Projet pour l'initiation au développement d'application mobile cross-platforms avec Flutter et Dart
 
-Dernière mise à jour : Mars 2021
+Dernière mise à jour : 16 Mars 2021
 
 ---
 
