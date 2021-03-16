@@ -34,29 +34,23 @@ class _MyTasksState extends State<MyTasks> {
     setState(() {
       if (!_isEditing) {
         _addTask(content);
+        _showConfirmation('Task added');
       } else {
         _currentTask.content = content;
+        _showConfirmation('Task updated');
       }
       _contentController.text = "";
       _isEditing = false;
       _openForm = false;
-
-      _showConfirmation();
     });
   }
 
-  void _showConfirmation() {
-    // if (_rootScaffoldMessengerKey.currentState != null)
-    //   _rootScaffoldMessengerKey.currentState.showSnackBar(snackbar);
-
-    var message = (_isEditing) ? 'task updated !' : 'task added !';
-
+  void _showConfirmation(String message) {
     var snackbar = SnackBar(
       content: Text(message),
       backgroundColor: Colors.green,
     );
-    //ScaffoldMessenger.of(context).showSnackBar(snackbar);
-    //ScaffoldMessenger(key: _scaffoldMessengerKey, child: snackbar);
+
     _scaffoldMessengerKey.currentState.showSnackBar(snackbar);
   }
 
@@ -71,18 +65,23 @@ class _MyTasksState extends State<MyTasks> {
       _currentTask = task;
       _isEditing = true;
     });
-    _openCloseForm();
+    _openForm = true;
+    _contentController.text = _currentTask.content;
+  }
+
+  void _onDeleteTask() {
+    setState(() {
+      _tasks.remove(_currentTask);
+      _showConfirmation('Task deleted');
+    });
+    _openForm = false;
   }
 
   void _openCloseForm() {
     setState(() {
-      if (_isEditing) {
-        _openForm = true;
-      } else {
-        (_openForm) ? _openForm = false : _openForm = true;
-        _currentTask = Task("");
-      }
-
+      (_openForm) ? _openForm = false : _openForm = true;
+      _isEditing = false;
+      _currentTask = Task("");
       _contentController.text = _currentTask.content;
     });
   }
@@ -96,6 +95,7 @@ class _MyTasksState extends State<MyTasks> {
         return Card(
           child: ListTile(
             onTap: () => _onEditTask(task),
+            onLongPress: () => _onDeleteTask(),
             title: Text(
               task.content,
             ),
@@ -122,16 +122,33 @@ class _MyTasksState extends State<MyTasks> {
               },
               onSaved: (value) => _saveTask(value),
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState.validate()) {
-                  _formKey.currentState.save();
-                  _formKey.currentState.reset();
-                }
-              },
-              child: Center(
-                child: Icon(Icons.check),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                (_isEditing && _openForm)
+                    ? ElevatedButton(
+                        style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.all(Colors.red),
+                        ),
+                        onPressed: () => _onDeleteTask(),
+                        child: Center(
+                          child: Icon(Icons.delete),
+                        ),
+                      )
+                    : Container(),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState.validate()) {
+                      _formKey.currentState.save();
+                      _formKey.currentState.reset();
+                    }
+                  },
+                  child: Center(
+                    child: Icon(Icons.check),
+                  ),
+                ),
+              ],
             )
           ],
         ),
@@ -151,7 +168,11 @@ class _MyTasksState extends State<MyTasks> {
           children: [
             (_openForm) ? _taskForm(context) : Container(),
             Expanded(
-              child: _taskList(),
+              child: (_tasks.length > 0)
+                  ? _taskList()
+                  : Center(
+                      child: Text('No task at the moment'),
+                    ),
             ),
           ],
         ),
