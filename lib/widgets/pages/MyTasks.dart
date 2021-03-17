@@ -1,5 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:tasklist/models/Task.dart';
+
+import '../../models/Task.dart';
 
 class MyTasks extends StatefulWidget {
   MyTasks({Key key}) : super(key: key);
@@ -13,9 +16,23 @@ class _MyTasksState extends State<MyTasks> {
   bool _isEditing;
   Task _currentTask;
   List<Task> _tasks;
+  Dio dio;
+  String endpoint;
+  Response response;
+
+  _MyTasksState() {
+    BaseOptions options = new BaseOptions(
+      baseUrl: endpoint,
+      connectTimeout: 5000,
+      receiveTimeout: 3000,
+    );
+    dio = new Dio(options);
+  }
 
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
+
+  final GlobalKey _scaffoldKey = GlobalKey();
 
   final _formKey = GlobalKey<FormState>();
   final _contentController = TextEditingController();
@@ -26,18 +43,35 @@ class _MyTasksState extends State<MyTasks> {
       _openForm = false;
       _isEditing = false;
       _tasks = [];
+      dio.options.baseUrl = 'https://jsonplaceholder.typicode.com';
+      _getTasks();
     });
+
+    _read(null);
+
     super.initState();
+  }
+
+  void _getTasks() async {
+    try {
+      response = await dio.get('/posts');
+      setState(() {
+        response.data.forEach((task) => _tasks.insert(0, Task.fromJson(task)));
+      });
+    } catch (e) {
+      print(e);
+    }
   }
 
   void _saveTask(String content) {
     setState(() {
       if (!_isEditing) {
         _addTask(content);
-        _showConfirmation('Task added');
+        _showNotification('Task added');
       } else {
         _currentTask.content = content;
-        _showConfirmation('Task updated');
+        _update(_currentTask);
+        _showNotification('Task updated');
       }
       _contentController.text = "";
       _isEditing = false;
@@ -45,7 +79,36 @@ class _MyTasksState extends State<MyTasks> {
     });
   }
 
-  void _showConfirmation(String message) {
+  void _showAlertDialog() {
+    Widget okButton = TextButton(
+        child: Text("Yes, delete !"),
+        onPressed: () {
+          _deleteTask();
+        });
+
+    Widget cancelButton = TextButton(
+        child: Text("Cancel"),
+        onPressed: () {
+          Navigator.of(context).pop();
+        });
+
+    AlertDialog alert = AlertDialog(
+      title: Text("Task deletion"),
+      content: Text("Are you sure ?"),
+      actions: [
+        cancelButton,
+        okButton,
+      ],
+    );
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
+
+  void _showNotification(String message) {
     var snackbar = SnackBar(
       content: Text(message),
       backgroundColor: Colors.green,
@@ -56,7 +119,8 @@ class _MyTasksState extends State<MyTasks> {
 
   void _addTask(String content) {
     setState(() {
-      _tasks.insert(0, Task(content));
+      //_tasks.insert(0, Task(content));
+      _create(Task(content));
     });
   }
 
@@ -69,12 +133,23 @@ class _MyTasksState extends State<MyTasks> {
     _contentController.text = _currentTask.content;
   }
 
+  void _onCompletedChange(bool value) {
+    setState(() {
+      _currentTask.completed = value;
+    });
+  }
+
   void _onDeleteTask() {
     setState(() {
-      _tasks.remove(_currentTask);
-      _showConfirmation('Task deleted');
+      //_tasks.remove(_currentTask);
+      _showAlertDialog();
     });
     _openForm = false;
+  }
+
+  void _deleteTask() {
+    _delete(_currentTask.id);
+    _showNotification('Task deleted');
   }
 
   void _openCloseForm() {
@@ -85,6 +160,51 @@ class _MyTasksState extends State<MyTasks> {
       _contentController.text = _currentTask.content;
     });
   }
+
+  Future<void> _create(Task task) async {
+    try {
+      Response response = await dio.request(
+        '/',
+        data: task.toJson(),
+        options: Options(
+            contentType: 'application/json; charset=UTF-8', method: 'POST'),
+      );
+      if (response.statusCode == 201) {
+        await _read(null);
+        setState(() {
+          _tasks.insert(0, Task.fromJson(response.data));
+        });
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> _read(int id) async {
+    Response response;
+    try {
+      if (id != null) {
+        response = await dio.request("/" + id.toString());
+      } else {
+        response = await dio.request("/");
+      }
+
+      if (response.statusCode == 200) {
+        if (id != null) {
+          var task = Task.fromJson(response.data);
+          setState(() {
+            _tasks.add(task);
+          });
+        } else {}
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> _update(Task task) {}
+
+  Future<void> _delete(int id) {}
 
   Widget _taskList() {
     return ListView.builder(
@@ -104,6 +224,8 @@ class _MyTasksState extends State<MyTasks> {
       },
     );
   }
+
+  Widget _completed() {}
 
   Widget _taskForm(BuildContext context) {
     return Padding(
