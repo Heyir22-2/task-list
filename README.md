@@ -6,18 +6,22 @@
 
 Dernière mise à jour : 16 Mars 2021
 
---- 
+---
 
 - Utilisation d'un formulaire : https://flutter.dev/docs/cookbook/forms/validation
 
 - Utilisation du Widget Expanded pour la gestion de la ListView + Form dans Column
 
 - Utilisation de Scaffold Messenger :
-https://flutter.dev/docs/release/breaking-changes/scaffold-messenger
+  https://flutter.dev/docs/release/breaking-changes/scaffold-messenger
 
 ---
 
 ## Commandes utiles
+
+### Téléchargement des dépendances (à exécuter après avoir récupérer les sources sur Github)
+
+`flutter pub get`
 
 ### Vérification de l'installation de Flutter
 
